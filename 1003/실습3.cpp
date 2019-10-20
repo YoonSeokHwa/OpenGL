@@ -221,14 +221,9 @@ void Mouse(int button, int state, int x, int y)
 		cout << x<<"   "<<y << endl;
 		cout << ox << "   " << oy << endl;
 
-
 		positions[triangleIndex*3] = { ox,oy,0 };
 		positions[triangleIndex*3+1] = { ox - 0.25f,oy-0.25f,0 };
 		positions[triangleIndex*3+2] = { ox +0.25f , oy -0.25f,0 };
-
-		colors[triangleIndex*3] = { 1,0,0 };
-		colors[triangleIndex*3 + 1] = { 1,0,0 };
-		colors[triangleIndex*3 + 2] = {1,0,0 };
 
 		triangleIndex += 1;
 		triangleIndex %= 4;
