@@ -19,6 +19,8 @@ int WIN;
 GLuint ShaderProgramID;
 GLuint triangleShaderProgramID;
 
+void Mouse(int button, int state, int x, int y);
+void Keyboard(unsigned char key, int x, int y);
 
 char* filetobuf(const char *file) {
 	FILE *fptr; long length; char *buf;
@@ -81,7 +83,7 @@ GLuint complie_shaders() {
 	}
 	glUseProgram(ShaderProgramID); //---만들어진세이더프로그램사용하기 // 여러개의프로그램만들수있고, 특정프로그램을사용하려면 // glUseProgram함수를호출하여사용할특정프로그램을지정한다. // 사용하기직전에호출할수있다. return ShaderProgramID;
 }
-void Mouse(int button, int state, int x, int y);
+
 
 void main(int argc, char** argv) // 윈도우 출력하고 콜백함수 설정 
 { //--- 윈도우 생성하기
@@ -106,42 +108,68 @@ void main(int argc, char** argv) // 윈도우 출력하고 콜백함수 설정
 	glutMouseFunc(Mouse);
 	glutDisplayFunc(drawScene); // 출력 함수의 지정
 	glutReshapeFunc(Reshape); // 다시 그리기 함수 지정
-
+	glutKeyboardFunc(Keyboard);
 
 	glutMainLoop(); // 이벤트 처리 시작 
 }
 
+double mouseX, mouseY;
+bool drawmode = false; // 선
+double increase = 0;
+
+void drawCircle() {
+	//원그리기
+	double rad = 0.05;
+	rad += increase; // 원을 점점 크게해준다
+	if (rad > 0.3) {  //일정한 반지름이되면 초기화
+		increase = 0;
+	}
+	if (drawmode == false)
+		glBegin(GL_LINE_LOOP); // glBegin 그리기모드
+	else if (drawmode == true)
+		glBegin(GL_LINES);		//점
+
+	for (int i = 0; i < 361; i++) {
+		if (i == 360) {
+			increase += 0.0001;
+			//cout << "dd" << endl;
+			break;
+		}
+		double angle, Circle_x, Circle_y; //라디안
+		angle = i * 3.141592 / 180;
+		Circle_x = rad * cos(angle);
+		Circle_y = rad * sin(angle);
+		glVertex2f(Circle_x + mouseX, Circle_y + mouseY); //좌표값
+	}
+	glEnd(); // glBegin~glEnd
+
+}
 
 GLvoid drawScene() // 콜백 함수: 출력 
 {
 	glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // 기본 흰색
 	glClear(GL_COLOR_BUFFER_BIT); // 설정된 색으로 전체를 칠하기
 	//glColor3f(0.0f, 0.0f, 1.0f);
-	
-	//원그리기
-	double rad = 0.5;
-	glBegin(GL_LINE_LOOP); // glBegin 그리기모드
 
-	for (int i = 0; i < 360; i++) {
-		double angle, Circle_x, Circle_y; //라디안
-		//double angle, Circle_x, Circle_y; //라디안
-		angle = i * 3.141592 / 180;
-		Circle_x = rad * cos(angle);
-		Circle_y = rad * sin(angle);
-		glVertex2f(Circle_x, Circle_y); //좌표값
-	}
-	glEnd(); // glBegin~glEnd
-
+	drawCircle();
 	glutSwapBuffers();
 	glutPostRedisplay();
 	glFlush();
 }
 
-GLvoid Reshape(int w, int h) // 콜백 함수: 다시 그리기 
+void Keyboard(unsigned char key, int x, int y)
 {
-	glViewport(0, 0, w, h);
-}
+	switch (key) {
 
+	case '1': //점으로 그리기
+		drawmode = true;
+		break;
+
+	case '2': //선으로 그리기
+		drawmode = false;
+		break;
+	}
+}
 void Mouse(int button, int state, int x, int y)
 {
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
@@ -149,7 +177,15 @@ void Mouse(int button, int state, int x, int y)
 		float ox;
 		float oy;
 		convertDeviceXYOpneglXY(x, y, &ox, &oy);
-
-		cout << "찍히냐" << endl;
+		mouseX = ox;
+		mouseY = oy;
 	}
 }
+
+GLvoid Reshape(int w, int h) // 콜백 함수: 다시 그리기 
+{
+	glViewport(0, 0, w, h);
+}
+
+
+
