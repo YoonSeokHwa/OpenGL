@@ -41,13 +41,13 @@ char* filetobuf(const char *file) {
 
 void InitTriangle()
 {
-	positions.push_back({ 0.6,0.6,0 });
-	positions.push_back({ 0.3,0.0,0.0 });
-	positions.push_back({ 0.9,0.0,0.0 });
+	positions.push_back({ 0.5,0.5,0 });
+	positions.push_back({ 0.25,0.0,0.0 });
+	positions.push_back({ 0.75,0.0,0.0 });
 
-	positions.push_back({ -0.6,0.6,0 });
-	positions.push_back({ -0.9,0.0,0.0 });
-	positions.push_back({ -0.3,0.0,0.0 });
+	positions.push_back({ -0.5,0.5,0 });
+	positions.push_back({ -0.75,0.0,0.0 });
+	positions.push_back({ -0.25,0.0,0.0 });
 
 	positions.push_back({ 0.5,-0.5,0 });
 	positions.push_back({ 0.25,-1.0,0 });
@@ -61,9 +61,9 @@ void InitTriangle()
 	colors.push_back({ 1.0,0.0,0.0 });
 	colors.push_back({ 1.0,0.0,0.0 });
 
-	colors.push_back({ 1.0,0.0,0.0 });
-	colors.push_back({ 1.0,0.0,0.0 });
-	colors.push_back({ 1.0,0.0,0.0 });
+	colors.push_back({ 1.0,0.0,1.0 });
+	colors.push_back({ 1.0,0.0,1.0 });
+	colors.push_back({ 1.0,0.0,1.0 });
 
 	colors.push_back({ 1.0,1.0,0.0 });
 	colors.push_back({ 1.0,1.0,0.0 });
