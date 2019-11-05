@@ -22,9 +22,6 @@ GLuint triangleShaderProgramID;
 void Mouse(int button, int state, int x, int y);
 void Keyboard(unsigned char key, int x, int y);
 
-//vector<Vector3D> positions;
-//vector<Vector3D> colors;
-
 char* filetobuf(const char *file) {
 	FILE *fptr; long length; char *buf;
 	fptr = fopen(file, "rb"); // Open file for reading 
@@ -87,6 +84,15 @@ GLuint complie_shaders() {
 	glUseProgram(ShaderProgramID); //---만들어진세이더프로그램사용하기 // 여러개의프로그램만들수있고, 특정프로그램을사용하려면 // glUseProgram함수를호출하여사용할특정프로그램을지정한다. // 사용하기직전에호출할수있다. return ShaderProgramID;
 }
 
+
+bool click = false;
+double mouseX, mouseY;
+bool drawmode = false; // 선
+double increase = 0;
+int click_count = 0;
+
+vector<Vector3D> v;
+
 void main(int argc, char** argv) // 윈도우 출력하고 콜백함수 설정 
 { //--- 윈도우 생성하기
 
@@ -114,111 +120,59 @@ void main(int argc, char** argv) // 윈도우 출력하고 콜백함수 설정
 
 	glutMainLoop(); // 이벤트 처리 시작 
 }
-
-double mouseX, mouseY;
-bool drawmode = false; // 선
-double increase = 0;
-
-void drawCircle() {
-	//원그리기
-	//double rad = 0.05;
-	//rad += increase; // 원을 점점 크게해준다
-	//if (rad > 0.3) {  //일정한 반지름이되면 초기화
-	//	increase = 0;
-	//}
-	//if (drawmode == false)
-	//	glBegin(GL_LINE_LOOP); // glBegin 그리기모드
-	//else if (drawmode == true)
-	//	glBegin(GL_LINES);		//점
-
-	//for (int i = 0; i < 361; i++) {
-	//	if (i == 360) {
-	//		increase += 0.0001;
-	//		//cout << "dd" << endl;
-	//		break;
-	//	}
-	//	double angle, Circle_x, Circle_y; //라디안
-	//	angle = i * 3.141592 / 180;
-	//	Circle_x = rad * cos(angle);
-	//	Circle_y = rad * sin(angle);
-	//	glVertex2f(Circle_x + mouseX, Circle_y + mouseY); //좌표값
-	//}
-	//glEnd(); // glBegin~glEnd
-
-}
-
 GLvoid drawScene() // 콜백 함수: 출력 
 {
 	glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // 기본 흰색
 	glClear(GL_COLOR_BUFFER_BIT); // 설정된 색으로 전체를 칠하기
-	float rad = 0.2;
-	//glColor3f(0.0f, 0.0f, 1.0f);
-	vector<Vector3D> v;
-	
 
-	 GLfloat triShape[36][3] = {	};
+	float rad = 0.1;
+	if(click==true){
+		for (int i =0; i <36; i++)
+		{
+			v.push_back({ (float)((rad * cos((i * 10) * 3.141592 / 180)) + mouseX) ,(float)((rad * sin((i * 10) * 3.141592 / 180)) + mouseY) ,0});
+		}
+		for (int j = 0; j < click_count; ++j) {
 
-	for (int i =0; i <36; i+=1)
-	{
-		//v.push_back({ (float)(rad * cos((i * 10) * 3.141592 / 180)), (float)(rad * cos((i * 10) * 3.141592 / 180)),0 });
-		triShape[i][0] = (float)(rad * cos((i*10) * 3.141592 / 180));
-		triShape[i][1] = (float)(rad * sin((i*10) * 3.141592 / 180));
-		triShape[i][2] = 0;
+			GLuint vao, vbo[1];
+			GLchar *vertexsource, *fragmentsource; // 소스코드저장변수
+			GLuint vertexshader, fragmentshader; // 세이더
+			GLuint shaderprogram; // 세이더프로그램
+			// VAO 를지정하고할당하기 
+			glGenVertexArrays(1, &vao);
+			// VAO를바인드하기 
+			glBindVertexArray(vao);
+			// 2개의 VBO를지정하고할당하기 
+			glGenBuffers(1, vbo);
+
+			//--- 1번째 VBO를활성화하여바인드하고, 버텍스속성 (좌표값)을저장 
+			glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+
+			// 변수 diamond 에서버텍스데이터값을버퍼에복사한다.
+			// triShape배열의사이즈: 9 * float
+
+			glBufferData(GL_ARRAY_BUFFER, v.size() * sizeof(Vector3D), &v[j* 36], GL_STATIC_DRAW);
+
+
+			// 좌표값을 attribute 인덱스 0번에명시한다: 버텍스당 3* float 
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+			// attribute 인덱스 0번을사용가능하게함 
+			glEnableVertexAttribArray(0);
+
+			glUseProgram(ShaderProgramID);
+			if (drawmode == true) {
+				glDrawArrays(GL_POINTS, 0, v.size()); // 점
+			}
+			else if (drawmode == false) {
+				glDrawArrays(GL_LINE_LOOP, 0, v.size()); //선
+			}
+		}
+		glFlush();
 	}
-
-	//for (auto& data : v)
-	//{
-	//	cout << data.x << " "<<data.y<<endl;
-	//}
-
-	GLuint vao, vbo[1];
-	GLchar *vertexsource, *fragmentsource; // 소스코드저장변수
-	GLuint vertexshader, fragmentshader; // 세이더
-	GLuint shaderprogram; // 세이더프로그램
-	// VAO 를지정하고할당하기 
-	glGenVertexArrays(1, &vao);
-	// VAO를바인드하기 
-	glBindVertexArray(vao);
-	// 2개의 VBO를지정하고할당하기 
-	glGenBuffers(1, vbo);
-
-	//--- 1번째 VBO를활성화하여바인드하고, 버텍스속성 (좌표값)을저장 
-	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-
-	// 변수 diamond 에서버텍스데이터값을버퍼에복사한다.
-	// triShape배열의사이즈: 9 * float
-
-	glBufferData(GL_ARRAY_BUFFER,36 * sizeof(Vector3D), triShape, GL_STATIC_DRAW);
-
-
-	// 좌표값을 attribute 인덱스 0번에명시한다: 버텍스당 3* float 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-	// attribute 인덱스 0번을사용가능하게함 
-	glEnableVertexAttribArray(0);
-
-	////---2번째 VBO를활성화하여바인드하고, 버텍스속성 (색상)을저장 
-	//glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
-
-	//// 변수 colors에서버텍스색상을복사한다. 
-	//// colors 배열의사이즈: 9 *float 
-	//glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(Vector3D), &colors[0], GL_STATIC_DRAW);
-
-	//// 색상값을 attribute 인덱스 1번에명시한다: 버텍스당3*float 
-	//glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-	////cout << "test" << endl;
-	//// attribute 인덱스 1번을사용가능하게함. 
-	//glEnableVertexAttribArray(1);
-
-	glUseProgram(ShaderProgramID);
-	glDrawArrays(GL_LINE_LOOP, 0, 36);
-
-//	InitCircle();
-	//drawCircle();
+	/*drawCircle();*/
 	glutSwapBuffers();
 	glutPostRedisplay();
-	glFlush();
+
 }
 
 void Keyboard(unsigned char key, int x, int y)
@@ -236,13 +190,18 @@ void Keyboard(unsigned char key, int x, int y)
 }
 void Mouse(int button, int state, int x, int y)
 {
+	click = true;
+
+	
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
 	{
+		click_count += 1;
 		float ox;
 		float oy;
 		convertDeviceXYOpneglXY(x, y, &ox, &oy);
 		mouseX = ox;
 		mouseY = oy;
+
 	}
 }
 
