@@ -22,6 +22,25 @@ GLuint triangleShaderProgramID;
 void Mouse(int button, int state, int x, int y);
 void Keyboard(unsigned char key, int x, int y);
 
+struct Circle
+{
+	double m_x;
+	double m_y;
+	float m_rad;
+	bool isInfinite = false;
+};
+
+vector<Vector3D> v;
+vector<GLuint> vaoArray;
+vector<Circle> circles;
+
+bool click = false;
+double mouseX, mouseY;
+bool drawmode = false; // 선
+double increase = 0;
+float rad = 0.1;
+
+
 char* filetobuf(const char *file) {
 	FILE *fptr; long length; char *buf;
 	fptr = fopen(file, "rb"); // Open file for reading 
@@ -84,15 +103,6 @@ GLuint complie_shaders() {
 	glUseProgram(ShaderProgramID); //---만들어진세이더프로그램사용하기 // 여러개의프로그램만들수있고, 특정프로그램을사용하려면 // glUseProgram함수를호출하여사용할특정프로그램을지정한다. // 사용하기직전에호출할수있다. return ShaderProgramID;
 }
 
-
-bool click = false;
-double mouseX, mouseY;
-bool drawmode = false; // 선
-double increase = 0;
-int click_count = 0;
-
-vector<Vector3D> v;
-
 void main(int argc, char** argv) // 윈도우 출력하고 콜백함수 설정 
 { //--- 윈도우 생성하기
 
@@ -117,62 +127,67 @@ void main(int argc, char** argv) // 윈도우 출력하고 콜백함수 설정
 	glutDisplayFunc(drawScene); // 출력 함수의 지정
 	glutReshapeFunc(Reshape); // 다시 그리기 함수 지정
 	glutKeyboardFunc(Keyboard);
-
 	glutMainLoop(); // 이벤트 처리 시작 
 }
 GLvoid drawScene() // 콜백 함수: 출력 
 {
 	glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // 기본 흰색
 	glClear(GL_COLOR_BUFFER_BIT); // 설정된 색으로 전체를 칠하기
+	
+	GLuint  vbo[1];
+	GLchar *vertexsource, *fragmentsource; // 소스코드저장변수
+	GLuint vertexshader, fragmentshader; // 세이더
+	GLuint shaderprogram; // 세이더프로그램
 
-	float rad = 0.1;
-	if(click==true){
-		for (int i =0; i <36; i++)
+	for (int j = 0; j < circles.size(); j++) {
+		if (circles[j].m_rad > 0.4 && circles[j].isInfinite == false) {
+			circles[j].m_rad = 0.1;
+		}
+		for (int i = j*36; i < (j*36)+36; i++)
 		{
-			v.push_back({ (float)((rad * cos((i * 10) * 3.141592 / 180)) + mouseX) ,(float)((rad * sin((i * 10) * 3.141592 / 180)) + mouseY) ,0});
+			v[i].x = (float)((circles[j].m_rad * cos((i * 10) * 3.141592 / 180)) + circles[j].m_x);
+			v[i].y = (float)((circles[j].m_rad * sin((i * 10) * 3.141592 / 180)) + circles[j].m_y);
 		}
-		for (int j = 0; j < click_count; ++j) {
+		circles[j].m_rad += 0.0001;
+		
 
-			GLuint vao, vbo[1];
-			GLchar *vertexsource, *fragmentsource; // 소스코드저장변수
-			GLuint vertexshader, fragmentshader; // 세이더
-			GLuint shaderprogram; // 세이더프로그램
-			// VAO 를지정하고할당하기 
-			glGenVertexArrays(1, &vao);
-			// VAO를바인드하기 
-			glBindVertexArray(vao);
-			// 2개의 VBO를지정하고할당하기 
-			glGenBuffers(1, vbo);
-
-			//--- 1번째 VBO를활성화하여바인드하고, 버텍스속성 (좌표값)을저장 
-			glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-
-			// 변수 diamond 에서버텍스데이터값을버퍼에복사한다.
-			// triShape배열의사이즈: 9 * float
-
-			glBufferData(GL_ARRAY_BUFFER, v.size() * sizeof(Vector3D), &v[j* 36], GL_STATIC_DRAW);
-
-
-			// 좌표값을 attribute 인덱스 0번에명시한다: 버텍스당 3* float 
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-			// attribute 인덱스 0번을사용가능하게함 
-			glEnableVertexAttribArray(0);
-
-			glUseProgram(ShaderProgramID);
-			if (drawmode == true) {
-				glDrawArrays(GL_POINTS, 0, v.size()); // 점
-			}
-			else if (drawmode == false) {
-				glDrawArrays(GL_LINE_LOOP, 0, v.size()); //선
-			}
-		}
-		glFlush();
 	}
-	/*drawCircle();*/
+	for (int i = 0; i < vaoArray.size(); i++)
+	{
+		// VAO 를지정하고할당하기 
+		glGenVertexArrays(1, &vaoArray[i]);
+		// VAO를바인드하기 
+		glBindVertexArray(vaoArray[i]);
+		// 2개의 VBO를지정하고할당하기 
+		glGenBuffers(1, vbo);
+
+		//--- 1번째 VBO를활성화하여바인드하고, 버텍스속성 (좌표값)을저장 
+		glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+
+		// 변수 diamond 에서버텍스데이터값을버퍼에복사한다.
+		// triShape배열의사이즈: 9 * float
+
+		glBufferData(GL_ARRAY_BUFFER, 36 * sizeof(Vector3D), &v[i*36], GL_STATIC_DRAW);
+
+
+		// 좌표값을 attribute 인덱스 0번에명시한다: 버텍스당 3* float 
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+		// attribute 인덱스 0번을사용가능하게함 
+		glEnableVertexAttribArray(0);
+
+		glUseProgram(ShaderProgramID);
+		if (drawmode == true) {
+			glDrawArrays(GL_POINTS, 0, 36); // 점
+		}
+		else if (drawmode == false) {
+			glDrawArrays(GL_LINE_LOOP, 0, 36); //선
+		}
+	}
+
 	glutSwapBuffers();
 	glutPostRedisplay();
-
+	glFlush();
 }
 
 void Keyboard(unsigned char key, int x, int y)
@@ -188,21 +203,39 @@ void Keyboard(unsigned char key, int x, int y)
 		break;
 	}
 }
+
 void Mouse(int button, int state, int x, int y)
 {
-	click = true;
-
-	
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
 	{
-		click_count += 1;
+		//좌표계변환
 		float ox;
 		float oy;
 		convertDeviceXYOpneglXY(x, y, &ox, &oy);
 		mouseX = ox;
 		mouseY = oy;
 
+		//원 그리기
+
+		if (vaoArray.size() < 10)
+		{
+			if (rand() % 10 < 7)
+			{
+				circles.push_back({ mouseX,mouseY,rad, false });
+			}
+			else
+			{
+				circles.push_back({ mouseX,mouseY,rad, true });
+			}
+	
+			for (int i = 0; i < 36; i++)
+			{
+				v.push_back({ (float)((rad * cos((i * 10) * 3.141592 / 180)) + mouseX) ,(float)((rad * sin((i * 10) * 3.141592 / 180)) + mouseY) ,0 });
+			}
+			vaoArray.push_back(0);
+		}
 	}
+
 }
 
 GLvoid Reshape(int w, int h) // 콜백 함수: 다시 그리기 

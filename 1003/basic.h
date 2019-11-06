@@ -21,10 +21,10 @@ void convertDeviceXYOpneglXY(int x, int y, float* ox, float* oy) { // 윈도우좌표
 
 
 float direction[][2] = {
-	{0,0.0001},
-	{0,-0.0001},
-	{-0.0001,0},
-	{0.0001,0}
+	{0,0.001},
+	{0,-0.001},
+	{-0.001,0},
+	{0.001,0}
 };
 
 #define UP 0
