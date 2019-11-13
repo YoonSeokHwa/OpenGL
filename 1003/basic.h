@@ -69,6 +69,6 @@ void MoveTriangle(vector<Vector3D>& positions)
 		}
 	}
 }
-
+void spckeycallback(int key, int x, int y);
 void Mouse(int button, int state, int x, int y);
 void Keyboard(unsigned char key, int x, int y);

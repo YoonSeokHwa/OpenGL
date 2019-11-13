@@ -17,13 +17,29 @@ using namespace std;
 
 int WIN;
 int drawMode = 0;
+bool drawStyle = false;
+
 GLuint ShaderProgramID;
 GLuint triangleShaderProgramID;
 
-void Keyboard(unsigned char key, int x, int y);
-
 vector<Vector3D> v;
 vector<GLuint> vaoArray;
+struct MOVE
+{
+	bool isMoveX = false;
+	bool isMoveY = false;
+	bool isMoveZ = false;
+	glm::mat4 moveTx= glm::mat4(1.0f);
+	glm::mat4 moveTy = glm::mat4(1.0f);
+	glm::mat4 moveTz = glm::mat4(1.0f);
+
+};
+
+MOVE speare;
+MOVE cone_z;
+MOVE cone_y;
+MOVE disk;
+MOVE cylinder;
 
 char* filetobuf(const char *file) {
 	FILE *fptr; long length; char *buf;
@@ -109,6 +125,7 @@ void main(int argc, char** argv) // 윈도우 출력하고 콜백함수 설정
 	complie_shaders();
 	glutDisplayFunc(drawScene); // 출력 함수의 지정
 	glutReshapeFunc(Reshape); // 다시 그리기 함수 지정
+	glutSpecialFunc(spckeycallback);
 	glutKeyboardFunc(Keyboard);
 	glutMainLoop(); // 이벤트 처리 시작 
 }
@@ -117,31 +134,56 @@ GLvoid drawScene() // 콜백 함수: 출력
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	////좌표계그리기
-	//glBegin(GL_LINE_LOOP);
-	//glVertex3f(1.0, 0.0, 0.0);// 시작점
-	//glVertex3f(-1.0, 0.0, 0.0);//끝점
-	//glEnd();
+	//좌표계그리기
+	unsigned int modelLocation = glGetUniformLocation(ShaderProgramID, "u_transform");
+	glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
+	glBegin(GL_LINE_LOOP);
+	glVertex3f(1.0, 0.0, 0.0);// 시작점
+	glVertex3f(-1.0, 0.0, 0.0);//끝점
+	glEnd();
 
-	//glBegin(GL_LINE_LOOP);
-	//glVertex3f(0.0, 1.0, 0.0);// 시작점
-	//glVertex3f(0.0, -1.0, 0.0);
-	//glEnd();
-
+	glBegin(GL_LINE_LOOP);
+	glVertex3f(0.0, 1.0, 0.0);// 시작점
+	glVertex3f(0.0, -1.0, 0.0);
+	glEnd();
 
 	//3차원 도형그리기
 	qobj = gluNewQuadric(); // 객체생성하기 
-	gluQuadricDrawStyle( qobj, GLU_LINE ); // 도형스타일
+	//도형스타일 
+	if (drawStyle == false) {
+		gluQuadricDrawStyle(qobj, GLU_LINE); // 와이어
+	}
+	if(drawStyle == true){
+		gluQuadricDrawStyle(qobj, GLU_FILL); //솔리드
+	}
+
 	gluQuadricNormals( qobj, GLU_SMOOTH ); //생략가능
 	gluQuadricOrientation( qobj, GLU_OUTSIDE ); //생략가능 
 
-
-	if (drawMode == 1) { // 구
-		unsigned int modelLocation = glGetUniformLocation(ShaderProgramID, "u_transform");  //---버텍스세이더에서모델변환위치가져오기 
-		glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
+	// 구--------------------------------------------------
+	if (drawMode == 1) { 
+		//움직인 상태
+		if (speare.isMoveX == true) {
+			unsigned int modelLocation = glGetUniformLocation(ShaderProgramID, "u_transform");  //---버텍스세이더에서모델변환위치가져오기 
+			glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(glm::mat4(speare.moveTx)));
+		}
+		if (speare.isMoveY == true) {
+			unsigned int modelLocation = glGetUniformLocation(ShaderProgramID, "u_transform");  //---버텍스세이더에서모델변환위치가져오기 
+			glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(glm::mat4(speare.moveTy)));
+		}
+		if (speare.isMoveX == true && speare.isMoveY == true) {
+			unsigned int modelLocation = glGetUniformLocation(ShaderProgramID, "u_transform");  //---버텍스세이더에서모델변환위치가져오기 
+			glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(glm::mat4(speare.moveTx * speare.moveTy)));
+		}
+		//초기 상태
+		if (speare.isMoveX == false && speare.isMoveY == false) {
+			unsigned int modelLocation = glGetUniformLocation(ShaderProgramID, "u_transform");  //---버텍스세이더에서모델변환위치가져오기 
+			glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
+		}
 		gluSphere(qobj, 0.5, 50, 50); // 객체만들기
 	}
-	if (drawMode == 2) { //원뿔 z축
+	//원뿔 z축------------------------------------------------------------------------
+	if (drawMode == 2) {
 		glm::mat4 TR = glm::mat4(1.0f);
 		//y축이동
 		glm::mat4 Ty = glm::mat4(1.0f);
@@ -151,11 +193,25 @@ GLvoid drawScene() // 콜백 함수: 출력
 		Ry = glm::rotate(Ry, (float)glm::radians(-90.0), glm::vec3(1.0, 0.0, 0.0)); //y축 회전
 		TR = Ty * Ry;
 		unsigned int modelLocation = glGetUniformLocation(ShaderProgramID, "u_transform");  //---버텍스세이더에서모델변환위치가져오기 
-		glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR));
+		//초기 상태
+		if (cone_z.isMoveX == false && cone_z.isMoveZ == false) {
+			glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR));
+		}
+		//움직인 상태
+		if (cone_z.isMoveX == true) {
+			glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR * cone_z.moveTx));
+		}
+		if (cone_z.isMoveZ == true) {
+			glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR * cone_z.moveTz));
+		}
+		if (cone_z.isMoveZ == true && cone_z.isMoveX == true) {
+			glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR *cone_z.moveTx * cone_z.moveTz));
+		}
 		gluCylinder(qobj, 0.5, 0.0, 1.0, 20, 8);
 
 	}
-	if (drawMode == 3) { //원뿔 y축
+	//원뿔 y축--------------------------------------------------------------
+	if (drawMode == 3) { 
 		glm::mat4 TR = glm::mat4(1.0f);
 		//y축이동
 		glm::mat4 Ty = glm::mat4(1.0f);
@@ -165,16 +221,48 @@ GLvoid drawScene() // 콜백 함수: 출력
 		Ry = glm::rotate(Ry, (float)glm::radians(90.0), glm::vec3(0.0, 1.0, 0.0)); //y축 회전
 		TR = Ty * Ry;
 		unsigned int modelLocation = glGetUniformLocation(ShaderProgramID, "u_transform");  //---버텍스세이더에서모델변환위치가져오기 
-		glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR));
+		//초기 상태
+		if (cone_y.isMoveY == false && cone_y.isMoveZ == false) {
+			glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR));
+		}
+		//움직인 상태
+		if (cone_y.isMoveZ == true) {
+			glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR * cone_y.moveTz));
+		}
+		if (cone_y.isMoveY == true) {
+			glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR * cone_y.moveTy));
+		}
+		if (cone_y.isMoveZ == true && cone_y.isMoveY == true) {
+			glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR* cone_y.moveTz * cone_y.moveTy));
+		}
 		gluCylinder(qobj, 0.5, 0.0, 1.0, 20, 8);
 
 	}
-	if(drawMode == 4){ //디스크
-		unsigned int modelLocation = glGetUniformLocation(ShaderProgramID, "u_transform");   
-		glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
+	//디스크------------------------------------------------------------------
+	if(drawMode == 4){ 
+		//움직인 상태
+		if (disk.isMoveX == true) {
+			unsigned int modelLocation = glGetUniformLocation(ShaderProgramID, "u_transform");  //---버텍스세이더에서모델변환위치가져오기 
+			glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(glm::mat4(disk.moveTx)));
+		}
+		if (disk.isMoveY == true) {
+			unsigned int modelLocation = glGetUniformLocation(ShaderProgramID, "u_transform");  //---버텍스세이더에서모델변환위치가져오기 
+			glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(glm::mat4(disk.moveTy)));
+		}
+		if (disk.isMoveX == true && disk.isMoveY == true) {
+			unsigned int modelLocation = glGetUniformLocation(ShaderProgramID, "u_transform");  //---버텍스세이더에서모델변환위치가져오기 
+			glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(glm::mat4(disk.moveTx * disk.moveTy)));
+		}
+		unsigned int modelLocation = glGetUniformLocation(ShaderProgramID, "u_transform");  
+		//초기화 상태
+		if (disk.isMoveX == false && disk.isMoveY == false){
+			glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
+		}
+
 		gluDisk(qobj, 0.1, 0.5, 20, 3);
 	}
-	if(drawMode == 5){ //실린더
+	//실린더------------------------------------------------------------------------------
+	if(drawMode == 5){ 
 		glm::mat4 TR = glm::mat4(1.0f);
 		//y축이동
 		glm::mat4 Ty = glm::mat4(1.0f);
@@ -184,20 +272,122 @@ GLvoid drawScene() // 콜백 함수: 출력
 		Rx = glm::rotate(Rx, (float)glm::radians(90.0), glm::vec3(1.0, 0.0, 0.0)); //x축 회전
 		TR = Ty * Rx;
 		unsigned int modelLocation = glGetUniformLocation(ShaderProgramID, "u_transform");  //---버텍스세이더에서모델변환위치가져오기 
-		glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR));
-
+		//초기 상태
+		if (cylinder.isMoveZ == false && cylinder.isMoveY == false) {
+			glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR));
+		}
+		
+		//움직인 상태
+		if (cylinder.isMoveX == true) {
+			glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR * cylinder.moveTx));
+		}
+		if (cylinder.isMoveZ == true) {
+			glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR * cylinder.moveTz));
+		}
+		if (cylinder.isMoveZ == true && cylinder.isMoveX == true) {
+			glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(TR *cylinder.moveTx * cylinder.moveTz));
+		}
 		gluCylinder(qobj, 0.5, 0.5, 1.0, 20, 8);
 	}
-
-	////좌표계
-	//Rx = glm::mat4(1.0f); //--- translation matrix  행렬 초기화
-	//Rx = glm::rotate(Rx, (float)glm::radians(0.0), glm::vec3(1.0, 0.0, 0.0)); //x축 회전
-	//modelLocation = glGetUniformLocation(ShaderProgramID, "u_transform");  //---버텍스세이더에서모델변환위치가져오기 
-	//glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(Rx));
-	//gluCylinder(qobj, 1.0, 0.5, 1.0, 20, 8);
-
+	
 	glutSwapBuffers();
 	glutPostRedisplay();
+}
+void spckeycallback(int key, int x, int y) {
+	switch (key)
+	{
+		case 100: //왼쪽 이동
+			if (drawMode == 1) {
+				speare.isMoveX = true;
+				speare.moveTx += glm::translate(speare.moveTx, glm::vec3(-0.1, 0.0, 0.0));
+			}
+			if (drawMode == 2) {
+				cone_z.isMoveX = true;
+				cone_z.moveTx += glm::translate(cone_z.moveTx, glm::vec3(-0.1, 0.0, 0.0));
+			}
+			if (drawMode == 3) {
+				cone_y.isMoveZ = true;
+				cone_y.moveTz += glm::translate(cone_y.moveTz, glm::vec3(0.0, 0.0, -0.1));
+			}
+			if (drawMode == 4) {
+				disk.isMoveX = true;
+				disk.moveTx += glm::translate(disk.moveTx, glm::vec3(-0.1, 0.0, 0.0));
+			}
+			if (drawMode == 5) {
+				cylinder.isMoveX = true;
+				cylinder.moveTx += glm::translate(cylinder.moveTx, glm::vec3(-0.1, 0.0, 0.0));
+			}
+		break;
+
+		case 102: //오른쪽 이동
+			if (drawMode == 1) {
+				speare.isMoveX = true;
+				speare.moveTx += glm::translate(speare.moveTx, glm::vec3(0.1, 0.0, 0.0));
+			}
+			if (drawMode == 2) {
+				cone_z.isMoveX = true;
+				cone_z.moveTx += glm::translate(cone_z.moveTx, glm::vec3(0.1, 0.0, 0.0));
+			}
+			if (drawMode == 3) {
+				cone_y.isMoveZ = true;
+				cone_y.moveTz += glm::translate(cone_y.moveTz, glm::vec3(0.0, 0.0, 0.1));
+			}
+			if (drawMode == 4) {
+				disk.isMoveX = true;
+				disk.moveTx += glm::translate(disk.moveTx, glm::vec3(0.1, 0.0, 0.0));
+			}
+			if (drawMode == 5) {
+				cylinder.isMoveX = true;
+				cylinder.moveTx += glm::translate(cylinder.moveTx, glm::vec3(0.1, 0.0, 0.0));
+			}
+			break;
+
+		case 101: //위쪽 이동
+			if (drawMode == 1) {
+				speare.isMoveY = true;
+				speare.moveTy += glm::translate(speare.moveTy, glm::vec3(0.0, 0.1, 0.0));
+			}
+			if (drawMode == 2) {
+				cone_z.isMoveZ = true;
+				cone_z.moveTz += glm::translate(cone_z.moveTz, glm::vec3(0.0, 0.0, 0.1));
+			}
+			if (drawMode == 3) {
+				cone_y.isMoveY = true;
+				cone_y.moveTy += glm::translate(cone_y.moveTy, glm::vec3(0.0, 0.1, 0.0));
+			}
+			if (drawMode == 4) {
+				disk.isMoveY = true;
+				disk.moveTy += glm::translate(disk.moveTy, glm::vec3(0.0, 0.1, 0.0));
+			}
+			if (drawMode == 5) {
+				cylinder.isMoveZ = true;
+				cylinder.moveTz += glm::translate(cylinder.moveTz, glm::vec3(0.0, 0.0, -0.1));
+			}
+			break;
+
+		case 103: //아래쪽 이동
+			if (drawMode == 1) {
+				speare.isMoveY = true;
+				speare.moveTy += glm::translate(speare.moveTy, glm::vec3(0.0, -0.1, 0.0));
+			}
+			if (drawMode == 2) {
+				cone_z.isMoveZ = true;
+				cone_z.moveTz += glm::translate(cone_z.moveTz, glm::vec3(0.0, 0.0, -0.1));
+			}
+			if (drawMode == 3) {
+				cone_y.isMoveY = true;
+				cone_y.moveTy += glm::translate(cone_y.moveTy, glm::vec3(0.0, -0.1, 0.0));
+			}
+			if (drawMode == 4) {
+				disk.isMoveY = true;
+				disk.moveTy += glm::translate(disk.moveTy, glm::vec3(0.0, -0.1, 0.0));
+			}
+			if (drawMode == 5) {
+				cylinder.isMoveZ = true;
+				cylinder.moveTz += glm::translate(cylinder.moveTz, glm::vec3(0.0, 0.0, 0.1));
+			}
+			break;
+	}
 }
 
 void Keyboard(unsigned char key, int x, int y)
@@ -220,7 +410,14 @@ void Keyboard(unsigned char key, int x, int y)
 		case'5'://실린더
 			drawMode = 5;
 			break;
-
+		case'w': // 와이어/솔리드 모드
+			if (drawStyle == false) {
+				drawStyle = true;
+			}
+			else if (drawStyle == true) {
+				drawStyle = false;
+			}
+			break;
 	}
 }
 
